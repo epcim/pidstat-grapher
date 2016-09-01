@@ -10,8 +10,10 @@ read and write.
 Install
 -------
 
-Pidstat-grapher has been tested on Debian Squeeze and need python-psutil, python-gnuplot, sysstat
+Pidstat-grapher has been tested on Debian jessie and need python-psutil, python-gnuplot, sysstat
 packages to work properly.
+
+    apt install python-psutil python-gnuplot sysstat
 
 How to use it
 -------------
