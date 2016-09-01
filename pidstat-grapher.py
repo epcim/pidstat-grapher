@@ -133,11 +133,12 @@ class PidWatcherTask(threading.Thread):
         rss = []
         for tick in dataset:
             timeseries.append(float(tick[0]))
-            usrseries.append(float(tick[2].replace(',', '.')))
-            systemseries.append(float(tick[3].replace(',', '.')))
-            rss.append(float(tick[10].replace(',', '.')))
-            iorseries.append(float(tick[12].replace(',', '.')))
-            iowseries.append(float(tick[13].replace(',', '.')))
+            usrseries.append(float(tick[3].replace(',', '.')))
+            systemseries.append(float(tick[4].replace(',', '.')))
+            rss.append(float(tick[11].replace(',', '.')))
+            #print rss[-1]
+            iorseries.append(float(tick[13].replace(',', '.')))
+            iowseries.append(float(tick[14].replace(',', '.')))
         if not timeseries:
             return
         origin = timeseries[0]
