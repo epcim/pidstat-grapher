@@ -7,6 +7,12 @@ in order to follow multiple process activity. Then it plots each process activit
 based on pidstat output. Activity graphs reports CPU %usr, %system load and disk IO
 read and write.
 
+![alt tag](https://raw.githubusercontent.com/pixelated/pidstat-grapher/master/contrib/example-images/cpu.png)
+![alt tag](https://raw.githubusercontent.com/pixelated/pidstat-grapher/master/contrib/example-images/io.png)
+![alt tag](https://raw.githubusercontent.com/pixelated/pidstat-grapher/master/contrib/example-images/mem.png)
+
+
+
 Install
 -------
 
