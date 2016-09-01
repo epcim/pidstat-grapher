@@ -31,6 +31,6 @@ option then pidstat-grapher will waiting for a process cmdline matching the prov
 
 Use cases ::
 
- pidstat-grapher.py -p 2365,4589 -d /tmp/
- pidstat-grapher.py -a apache,lighttpd,sql -d /tmp
- pidstat-grapher.py -p 2365,4589 -a apache,lighttpd,sql -d /tmp
+    pidstat-grapher.py -p 2365,4589 -d /tmp/
+    pidstat-grapher.py -a apache,lighttpd,sql -d /tmp
+    pidstat-grapher.py -p 2365,4589 -a apache,lighttpd,sql -d /tmp
