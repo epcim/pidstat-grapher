@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
 # Copyright (c) 2011 Fabien Boucher <fabien.dot.boucher@gmail.com>
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -41,23 +41,34 @@ def find_pid_by_pattern(pattern):
     mepattern = ".*%s.*" % me
     pattern = ".*%s.*" % pattern
     for p in psutil.process_iter():
-        cmdline = " ".join(p.cmdline)
+        cmdline = p.name()
         if re.match(pattern, cmdline) and not re.match(mepattern, cmdline):
             return p.pid
     raise OSError
 
 def create_graph(timeseries, dataseries1, dataseries2, gtitle,
                             title1, title2,
-                            ylabel1, ylabel2,
+                            ylabel1, ylabel2, yrangeforce, combinedseries,
                             savepath):
     data1 = zip(timeseries, dataseries1)
     data1 = Gnuplot.Data(data1, title=title1)
     data2 = zip(timeseries, dataseries2)
     data2 = Gnuplot.Data(data2, title=title2, axes='x1y2')
-    yrange_max = max(dataseries1)
-    yrange_max = yrange_max * 1.2 or 1
-    y2range_max = max(dataseries2)
-    y2range_max = y2range_max * 1.2 or 1
+    if combinedseries:
+        dataseries3 = [sum(i) for i in zip(dataseries1,dataseries2)]
+        data3 = zip(timeseries, dataseries3)
+        data3 = Gnuplot.Data(data3, title='cumulative', axes='x1y2')
+    if yrangeforce > 0:
+        yrange_max = float(yrangeforce) * 1.1 or 1
+        y2range_max = yrange_max
+    else:
+        yrange_max = max(dataseries1)
+        yrange_max = yrange_max * 1.2 or 1
+        y2range_max = max(dataseries2)
+        y2range_max = y2range_max * 1.2 or 1
+        if combinedseries:
+            yrange_max = max(yrange_max, y2range_max)
+            y2range_max = yrange_max
     g = Gnuplot.Gnuplot(debug=GDEBUG)
     g.xlabel('duration (s)')
     g.ylabel(ylabel1)
@@ -69,7 +80,10 @@ def create_graph(timeseries, dataseries1, dataseries2, gtitle,
     g('set y2range [0:%s]' % str(y2range_max))
     g('set output "%s"' % savepath)
     g('set terminal png size 1000,480')
-    g._add_to_queue([data1, data2])
+    if combinedseries:
+        g._add_to_queue([data1, data2, data3])
+    else:
+        g._add_to_queue([data1, data2])
     g.replot()
 
 class PidWatcherTask(threading.Thread):
@@ -124,7 +138,7 @@ class PidWatcherTask(threading.Thread):
                 cmdline = " ".join(splittedline[15:])
             splittedline = splittedline[:15]
             dataset.append(splittedline)
-        
+
         timeseries = []
         usrseries = []
         systemseries = []
@@ -136,7 +150,6 @@ class PidWatcherTask(threading.Thread):
             usrseries.append(float(tick[3].replace(',', '.')))
             systemseries.append(float(tick[4].replace(',', '.')))
             rss.append(float(tick[11].replace(',', '.')))
-            #print rss[-1]
             iorseries.append(float(tick[13].replace(',', '.')))
             iowseries.append(float(tick[14].replace(',', '.')))
         if not timeseries:
@@ -170,7 +183,7 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-p", "--pids",
                       action="store",
-                      dest="pids", 
+                      dest="pids",
                       default=None,
                       help="provide pids list to watch (separate by a comma)")
     parser.add_option("-a", "--patterns",
@@ -184,6 +197,16 @@ if __name__ == "__main__":
                       dest="path",
                       default=None,
                       help="write output files to path")
+    parser.add_option("-P", "--prefix",
+                      action="store",
+                      dest="prefix",
+                      default=None,
+                      help="filename identifier string for output files")
+    parser.add_option("-c", "--cpu",
+                      action="store",
+                      dest="maxcpu",
+                      default=None,
+                      help="maximum CPU for y-axis (eg., 2400 = 24 CPUs)")
 
     (o, a) = parser.parse_args()
 
@@ -207,7 +230,12 @@ if __name__ == "__main__":
     if o.patterns:
         patterns = [p.strip() for p in o.patterns.split(',')]
         pids_and_patterns.extend(patterns)
-    
+
+    prefix = o.prefix
+    cpuforce = o.maxcpu
+    if not cpuforce:
+        cpuforce = 0
+
     ret = {}
     lock = threading.RLock()
     print "Press CTRL-c or kill pidstat subprocess to stop watchers and start rendering in %s" % path
@@ -220,10 +248,13 @@ if __name__ == "__main__":
 
     for k, v in ret.items():
         print "Creating activity graph for %s (%s)" % (k, v['cmdline'])
-        name = v['cmdline'].replace(' ', '-').replace('/', '_')
-        create_graph(v['timeseries'], v['usrseries'], v['systemseries'], v['cmdline'],
-                       "CPU %usr", "CPU %system", "load (%)", "load (%)", os.path.join(path, "cpu_"+name)+".png")
+        if prefix:
+            name = prefix
+        else:
+            name = v['cmdline'].replace(' ', '-').replace('/', '_')
+        create_graph(v['timeseries'], v['systemseries'], v['usrseries'], v['cmdline'],
+                       "CPU %system", "CPU %usr", "system load (%)", "user load (%)", cpuforce, True, os.path.join(path, "cpu_"+name)+".png")
         create_graph(v['timeseries'], v['iorseries'], v['iowseries'], v['cmdline'],
-                        "IO stats reads", "IO stats writes", "reads (kB)", "writes (kB)", os.path.join(path, "io_"+name)+".png")
+                        "IO stats reads", "IO stats writes", "reads (kB)", "writes (kB)", 0, False, os.path.join(path, "io_"+name)+".png")
         create_graph(v['timeseries'], v['rss'], [0], v['cmdline'],
-                        "Physical memory use", "", "amount (kB)", "", os.path.join(path, "mem_"+name)+".png")
+                        "Physical memory use", "", "amount (kB)", "", 0, False, os.path.join(path, "mem_"+name)+".png")
