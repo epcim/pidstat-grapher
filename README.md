@@ -7,11 +7,19 @@ in order to follow multiple process activity. Then it plots each process activit
 based on pidstat output. Activity graphs reports CPU %usr, %system load and disk IO
 read and write.
 
+![Alt text](contrib/example-images/cpu.png?raw=true "CPU")
+![Alt text](contrib/example-images/io.png?raw=true "IO")
+![Alt text](contrib/example-images/mem.png?raw=true "MEM")
+
+
+
 Install
 -------
 
-Pidstat-grapher has been tested on Debian Squeeze and need python-psutil, python-gnuplot, sysstat
+Pidstat-grapher has been tested on Debian jessie and need python-psutil, python-gnuplot, sysstat
 packages to work properly.
+
+    apt install python-psutil python-gnuplot sysstat
 
 How to use it
 -------------
@@ -23,6 +31,8 @@ option then pidstat-grapher will waiting for a process cmdline matching the prov
 
 Use cases ::
 
- pidstat-grapher.py -p 2365,4589 -d /tmp/
- pidstat-grapher.py -a apache,lighttpd,sql -d /tmp
- pidstat-grapher.py -p 2365,4589 -a apache,lighttpd,sql -d /tmp
+    pidstat-grapher.py -p 2365,4589 -d /tmp/
+    pidstat-grapher.py -a apache,lighttpd,sql -d /tmp
+    pidstat-grapher.py -p 2365,4589 -a apache,lighttpd,sql -d /tmp
+
+    python pidstat-grapher.py -p $(pidof chrome|tr ' ' ',') -d temp
