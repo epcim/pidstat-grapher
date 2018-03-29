@@ -34,7 +34,7 @@ from optparse import OptionParser
 
 GDEBUG=0
 PIDSTAT = "/usr/bin/pidstat"
-CMD_TEMPLATE = "%(cmd)s -p %(pid)s -u -d -r -h -l 1 3600"
+CMD_TEMPLATE = "%(cmd)s -p %(pid)s -u -d -r -h -H -l 1 3600"
 
 def find_pid_by_pattern(pattern):
     me = sys.argv[0]
@@ -135,8 +135,8 @@ class PidWatcherTask(threading.Thread):
         for line in out:
             splittedline = re.split('\s{1,}', line)
             if cmdline == None:
-                cmdline = " ".join(splittedline[15:])
-            splittedline = splittedline[:15]
+                cmdline = " ".join(splittedline[18:])
+            splittedline = splittedline[:16]
             dataset.append(splittedline)
 
         timeseries = []
@@ -146,12 +146,18 @@ class PidWatcherTask(threading.Thread):
         iowseries = []
         rss = []
         for tick in dataset:
+            # debug
+            #print '====>', tick
+            #ii=0
+            #for i in tick:
+            #    print ii, '---->', i
+            #    ii=ii+1
             timeseries.append(float(tick[0]))
             usrseries.append(float(tick[3].replace(',', '.')))
             systemseries.append(float(tick[4].replace(',', '.')))
-            rss.append(float(tick[11].replace(',', '.')))
-            iorseries.append(float(tick[13].replace(',', '.')))
-            iowseries.append(float(tick[14].replace(',', '.')))
+            rss.append(float(tick[12].replace(',', '.')))
+            iorseries.append(float(tick[14].replace(',', '.')))
+            iowseries.append(float(tick[15].replace(',', '.')))
         if not timeseries:
             return
         origin = timeseries[0]
@@ -248,13 +254,11 @@ if __name__ == "__main__":
 
     for k, v in ret.items():
         print "Creating activity graph for %s (%s)" % (k, v['cmdline'])
+        proc = "".join(v['cmdline'].split()[0].split('/')[-1:])
+        #proc_args = "_".join(v['cmdline'].split()[1:]).replace('/', '')[:20]
+        name = "proc-{}-pid-{}".format(proc,k)
         if prefix:
-            name = prefix
-        else:
-            name = v['cmdline'].replace(' ', '-').replace('/', '_')
-        create_graph(v['timeseries'], v['systemseries'], v['usrseries'], v['cmdline'],
-                       "CPU %system", "CPU %usr", "system load (%)", "user load (%)", cpuforce, True, os.path.join(path, "cpu_"+name)+".png")
-        create_graph(v['timeseries'], v['iorseries'], v['iowseries'], v['cmdline'],
-                        "IO stats reads", "IO stats writes", "reads (kB)", "writes (kB)", 0, False, os.path.join(path, "io_"+name)+".png")
-        create_graph(v['timeseries'], v['rss'], [0], v['cmdline'],
-                        "Physical memory use", "", "amount (kB)", "", 0, False, os.path.join(path, "mem_"+name)+".png")
+            name = "{}{}".format(prefix,name)
+        create_graph(v['timeseries'], v['systemseries'], v['usrseries'], v['cmdline'], "CPU %system", "CPU %usr", "system load (%)", "user load (%)", cpuforce, True,  os.path.join(path, "{}-cpu.png".format(name)))
+        create_graph(v['timeseries'], v['iorseries'], v['iowseries'], v['cmdline'], "IO stats reads", "IO stats writes", "reads (kB)", "writes (kB)", 0,        False, os.path.join(path, "{}-io.png".format(name)))
+        create_graph(v['timeseries'], v['rss'], [0], v['cmdline'], "Physical memory use", "", "amount (kB)", "", 0,                                             False, os.path.join(path, "{}-mem.png".format(name)))

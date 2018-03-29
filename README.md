@@ -34,3 +34,5 @@ Use cases ::
     pidstat-grapher.py -p 2365,4589 -d /tmp/
     pidstat-grapher.py -a apache,lighttpd,sql -d /tmp
     pidstat-grapher.py -p 2365,4589 -a apache,lighttpd,sql -d /tmp
+
+    python pidstat-grapher.py -p $(pidof chrome|tr ' ' ',') -d temp
